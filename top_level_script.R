@@ -18,7 +18,7 @@
 ###############################################################################################
 
 ## What state?
-which_state <- "Texas"
+which_state <- "Tennessee"
 
 ##############
 ### Some controls
@@ -54,7 +54,7 @@ source("data_clean_detect.R")               ## Bird detection scaling
 load_temp_data          <- TRUE
 source("data_clean_temperature.R")          ## State level county data, already subset to Texas. Full dataset available at: ftp://ftp.ncdc.noaa.gov/pub/data/cirs/climdiv/
 load_stan_bird_mos_res  <- TRUE             ## Load previously run model if available (TRUE) or run from scratch (FALSE)?
-source("data_clean_bird_mos.R")             ## Bird to Mosquito transmission
+source("data_clean_bird_mos.R")             ## Bird to Mosquito transmission   ran manually
 load_stan_mos_bird_res  <- TRUE             ## Load previously run model if available (TRUE) or run from scratch (FALSE)?
 source("data_clean_mos_bird.R")             ## Mosquito to Bird transmission
 load_prev_county_dat    <- TRUE             ## Load previously run model if available (TRUE) or run from scratch (FALSE)?
