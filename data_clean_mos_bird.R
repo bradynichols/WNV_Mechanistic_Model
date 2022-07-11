@@ -43,21 +43,16 @@ logistic_curve <- function(x, k, b, r){
   k / (1 + b * exp(-r * x))
 }
 
-library(nlsr)
-mos_prob <- (nlxb(transmit ~ k / (1 + b * exp(-r * titer))
+mos_prob <- try(nlxb(transmit ~ k / (1 + b * exp(-r * titer))
   , data = titer_to_inc
-  , start = list(k = .75, b = 70, r = .5)
-  #, silent = TRUE
-  )
-  )
-# commented out silent = TRUE and also had to initialize nlsr and that fixed the below bug
+  , start = list(k = .75, b = 70, r = .5))
+  , silent = TRUE)
 
 mos_plot <- data.frame(titer = seq(0, 10, by = 0.01)
   , transmit = logistic_curve(seq(0, 10, by = 0.01)
     , k = mos_prob[["coefficients"]][1]
     , b = mos_prob[["coefficients"]][2]
     , r = mos_prob[["coefficients"]][3]))
-# BRADY NOTE: subscript out of bounds here (fixed)
 
 ## Bit of an ugly loop to match mean transmission from fitted relationship between transmission and titer
 for (i in 1:nrow(incrate)) {
@@ -75,7 +70,6 @@ incrate <- incrate %>%
     , !is.na(incrate[["Sample_Size"]])
     , Time_Series == "Y"
     , Citation != "Moudy et al 2007")
-# ERORR ABOVE not sure how to fix it
 
 ## Needed to reset factors so that they are a continuous seq of numbers when converted to numeric for Stan model
 incrate  <- droplevels(incrate) 
@@ -108,8 +102,6 @@ mos_bird.data <-
     , "N_CIT"      = length(unique(Citation))
     , "VS"         = as.numeric(Vector_Species)
     , "N_VS"       = length(unique(Vector_Species))))
-
-# NOTE you need to probably add the thingy you did before into the unique() thing
 
 ## Run (very slow) stan model
 mos_bird_model_out <- stan(

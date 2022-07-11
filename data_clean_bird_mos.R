@@ -23,12 +23,6 @@ vectcomp <- mos_bird_trans %>% filter(Host_to_Mosquito == "Y" & Time_Series == "
 ## Needed to reset factors so that they are a continuous seq of numbers when converted to numeric for Stan model
 vectcomp <- droplevels(vectcomp)
 
-# BRADY NOTE: for some reason, vector_species and citation are not properly
-# converted to factors  so when you do as_numeric, it messes up. if this doesn't work
-# (or even if it does), try making those 2 columns into factors which should fix any issue and work as intended
-
-
-
 ## Stan model data
 bird_mos.data <- 
   with(vectcomp, 
@@ -42,10 +36,8 @@ bird_mos.data <-
     , "Inf_Max"  = max(Number_Infected)
     , "LD"       = Log_Dose
     , "Temp"     = Temperature_C
-    , "VS"       = as.numeric(factor(Vector_Species)) #first NA thing
-    , "CIT"      = as.numeric(factor(Citation)) #second NA thing
-    )
-    )
+    , "VS"       = as.numeric(Vector_Species)
+    , "CIT"      = as.numeric(Citation)))
 
 ## Run model
 bird_mos_model_out <- stan(
@@ -61,14 +53,11 @@ bird_mos_model_out <- stan(
 ## Pleasant way to look at convergence of the model
 # launch_shinystan(bird_mos_model_out)
 
-# BRADY NOTE: I MANAGED TO GET UP TO HERE BUT THE NEXT FEW LINES I DO NOT UNDERSTAND
-
-# detach("package:tidyr", unload = TRUE) #unloads so extract works but this is not useful if we say rstan::extract
-samps_bird_mos          <- rstan::extract(bird_mos_model_out, permuted = FALSE)
+detach("package:tidyr", unload = TRUE)
+samps_bird_mos          <- extract(bird_mos_model_out, permuted = FALSE)
 library(tidyr)
-library(broom) 
-tidy_bird_mos           <- broom::tidy(samps_bird_mos) # changed from bird_mos_model_out
-bird_mos_model_out_summ <- rstan::summary(bird_mos_model_out) # change summary to rstan::summary
+tidy_bird_mos           <- tidy(bird_mos_model_out)
+bird_mos_model_out_summ <- summary(bird_mos_model_out)
 bird_mos_pred           <- bird_mos_model_out_summ[["summary"]]
 
 saveRDS(list(bird_mos_model_out_summ, bird_mos_pred, samps_bird_mos)
