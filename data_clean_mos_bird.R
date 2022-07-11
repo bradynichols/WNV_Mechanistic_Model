@@ -26,7 +26,7 @@ samps_mos_bird          <- rbind(samps_mos_bird[,1,], samps_mos_bird[,2,]
   
 incrate  <- read.csv("data/mos_bird_trans.csv", header = TRUE)
 
-incrate  <- dplyr::filter(incrate, "Sample_Size" != "NA")
+incrate  <- incrate %>% filter(!is.na(Sample_Size))
 
 titer_to_inc <- data.frame(
   transmit = subset(incrate
@@ -71,18 +71,18 @@ for (i in 1:nrow(incrate)) {
 
 ## Data associated with mosquito to bird transmission with no NAs and no data from Moudy et al. 2007 that inoculated differently
 incrate <- incrate %>% 
-  dplyr::filter(!is.na(Adjusted_Percent_Transmitted_Mean)
+  filter(!is.na(Adjusted_Percent_Transmitted_Mean)
     , !is.na(incrate[["Sample_Size"]])
     , Time_Series == "Y"
     , Citation != "Moudy et al 2007")
-# ERORR ABOVE not sure how to fix it (fixed by adding dplyr before filter)
+# ERORR ABOVE not sure how to fix it
 
 ## Needed to reset factors so that they are a continuous seq of numbers when converted to numeric for Stan model
 incrate  <- droplevels(incrate) 
 
 ## Separate data into with and without Japanese Encephalitis data
 incrateJ <- incrate
-incrateY <- incrate %>% dplyr::filter(Strain != "JEV"); incrateY <- droplevels(incrateY)
+incrateY <- incrate %>% filter(Strain != "JEV"); incrateY <- droplevels(incrateY)
 
 ########
 ## Stan model
@@ -104,9 +104,9 @@ mos_bird.data <-
     , "N_VL"       = length(unique(Virus_Lineage))
     , "IE"         = as.numeric(as.factor(Unique_Line))
     , "N_IE"       = length(unique(Unique_Line))
-    , "CIT"        = as.numeric(factor(Citation))
+    , "CIT"        = as.numeric(Citation)
     , "N_CIT"      = length(unique(Citation))
-    , "VS"         = as.numeric(factor(Vector_Species))
+    , "VS"         = as.numeric(Vector_Species)
     , "N_VS"       = length(unique(Vector_Species))))
 
 # NOTE you need to probably add the thingy you did before into the unique() thing
@@ -115,22 +115,21 @@ mos_bird.data <-
 mos_bird_model_out <- stan(
   file    = "stan/Mosquito_to_Bird_ebird.stan"
 , data    = mos_bird.data
-, iter    = 400 #8000
+, iter    = 8000
 , thin    = 2
-, warmup  = 100 #2000
-, refresh = max(2000/100, 1) #8000/100, 1
+, warmup  = 2000
+, refresh = max(8000/100, 1)
 , control = list(max_treedepth = 17, adapt_delta = .94),
-  chains  = 2)
+  chains  = 4)
 
 ## Pleasant way to look at convergence of the model
 # launch_shinystan(mos_bird_model_out)
 
 ## organize model output
 detach("package:tidyr", unload = TRUE)
-samps_mos_bird          <- rstan::extract(mos_bird_model_out, permuted = FALSE)
+samps_mos_bird          <- extract(mos_bird_model_out, permuted = FALSE)
 library(tidyr)
-library(broom)
-tidy_mos_bird           <- tidy(samps_mos_bird)
+tidy_mos_bird           <- tidy(mos_bird_model_out)
 mos_bird_model_out_summ <- summary(mos_bird_model_out)
 mos_bird_trans          <- mos_bird_model_out_summ[["summary"]]
 
@@ -138,8 +137,7 @@ saveRDS(list(mos_bird_model_out_summ, mos_bird_trans, samps_mos_bird)
   , file = "saved_output/mosquito_to_bird_transmission.Rds")
 
 ## combine the samps from all chains
-samps_mos_bird <- rbind(samps_mos_bird[,1,], samps_mos_bird[,2,]) #, samps_mos_bird[,3,], samps_mos_bird[,4,]
-# above: remove the last two chains bc i didn't run them
+samps_mos_bird <- rbind(samps_mos_bird[,1,], samps_mos_bird[,2,], samps_mos_bird[,3,], samps_mos_bird[,4,])
 
 }
 
@@ -148,7 +146,7 @@ samps_mos_bird <- rbind(samps_mos_bird[,1,], samps_mos_bird[,2,]) #, samps_mos_b
 ########
 mosqsurv      <- read.csv("data/mosqsurv.csv", header = TRUE)
 
-mosqsurv      <- mosqsurv %>% dplyr::filter(Citation == "Andreadis et al 2014")
+mosqsurv      <- mosqsurv %>% filter(Citation == "Andreadis et al 2014")
 
 mosq_surv     <- glm(cbind(Surviving_Count
   , Sample_Size - Surviving_Count) ~ Temperature * Longevity_Days
